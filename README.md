@@ -106,10 +106,3 @@ Produces `build/Release/BinaryClockV5.elf`. Current usage: ~88% of 16 KB flash, 
    openocd -f interface/stlink.cfg -f target/stm32f0x.cfg -c "adapter speed 500"
    ```
 3. With OpenOCD's GDB server running on port 3333, `arm-none-eabi-gdb` can flash, halt/resume, and call firmware functions directly (used during bring-up to read the RTC, the BME280, and to set/read the alarm without writing a separate test harness).
-
-## Known quirks and maintenance notes
-
-- **LED matrix wiring compensation** — `field()`'s bit-mirroring and `mu_fix`'s bit swap (see [Display frame format](#display-frame-format)) exist only to match how this specific matrix is soldered. They're the first place to check if a re-soldered matrix shows the wrong digits, and the first place to simplify away if the wiring is ever redone cleanly.
-- **Alarm input needs a pull-up** — `ALARM_INPUT_Pin` is configured `GPIO_NOPULL`, but the DS3231's INT/SQW pin is open-drain. This only works reliably if the RTC module itself has a pull-up resistor; worth confirming on the actual board rather than assuming.
-- **BME280 chip-ID check** — `bme280_init()` now reads register 0xD0 and requires it to read back 0x60 before accepting the sensor, so a different device answering on the same I2C address (e.g. a BMP280, which lacks humidity) is rejected instead of silently returning bad humidity readings.
-- **No RTOS, fully polled** — the whole application is one `while(1)` calling three tasks; there's no interrupt-driven logic to reason about, which keeps timing simple but means any blocking call (e.g. the 10 ms `HAL_Delay` in `bme280_read()`) briefly stalls button polling too.
